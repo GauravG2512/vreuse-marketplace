@@ -1,5 +1,5 @@
 // API Base URL
-const API_URL = 'http://localhost:5004/api';
+const API_URL = 'https://vreuse-marketplace-gg.onrender.com/api';
 
 // === DOM Element Selectors ===
 const welcomeMessage = document.getElementById('welcome-message');
