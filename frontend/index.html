@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-Reuse - Zero-Waste Marketplace</title>
+    <!-- Link to the external stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+
+    <header>
+        <img id="vreuse-logo" src="/images/vreuse-logo.jpg" alt="VReuse Logo">
+        <img id="vit-logo" src="/images/vit-logo.png" alt="VIT Logo" style="display: none;">
+        <div class="header-text">
+            <h1>V-Reuse Marketplace</h1>
+            <p>A zero-waste marketplace for VIT students</p>
+        </div>
+    </header>
+
+    <nav>
+        <span id="welcome-message" style="display: none;"></span>
+        <button id="show-add-item" class="nav-button" style="display: none;">Add Item</button>
+        <button id="show-home" class="nav-button" style="display: none;">Home</button>
+        <button id="show-profile" class="nav-button" style="display: none;">Profile</button>
+        <button id="show-messages" class="nav-button" style="display: none;">Messages</button>
+        <button id="show-login" class="nav-button">Login</button>
+        <button id="show-register" class="nav-button">Register</button>
+        <button id="logout-button" class="nav-button" style="display: none;">Logout</button>
+    </nav>
+    
+    <main>
+        <section id="auth-container" class="form-container">
+            <!-- Forms will be loaded here by JavaScript -->
+        </section>
+        
+        <section id="add-item-container" class="form-container" style="display: none;">
+            <!-- Form will be loaded here by JavaScript -->
+        </section>
+
+        <section id="profile-container" style="display: none;">
+            <!-- User profile info will be displayed here by app.js -->
+        </section>
+
+        <section id="messages-inbox-container" style="display: none;">
+            <h2>Your Conversations</h2>
+            <div id="conversations-list">
+                <!-- Conversations will be displayed here -->
+            </div>
+        </section>
+
+        <section id="marketplace-container" style="display: none;">
+            <h2>Marketplace Feed</h2>
+            <div class="search-and-filters-container">
+                <input type="text" id="search-input" placeholder="Search for items...">
+                <select id="category-filter">
+                    <option value="">All Categories</option>
+                    <option value="Books">Books</option>
+                    <option value="Lab Kits">Lab Kits</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Free Stuff">Free Stuff</option>
+                    <option value="Other">Other</option>
+                </select>
+                <select id="sort-by">
+                    <option value="">Sort by</option>
+                    <option value="low_to_high">Price: Low to High</option>
+                    <option value="high_to_low">Price: High to Low</option>
+                </select>
+            </div>
+            <div id="item-list"></div>
+        </section>
+
+        <section id="chat-container" style="display: none;">
+            <div class="chat-header">
+                <h2 id="chat-with-user"></h2>
+                <button id="close-chat" class="nav-button">Close</button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be displayed here -->
+            </div>
+            <div class="chat-input">
+                <input type="text" id="chat-input-text" placeholder="Type a message...">
+                <button id="send-message-button" class="nav-button">Send</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 V-Reuse. All rights reserved.</p>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('Service Worker registered!', reg))
+                    .catch(err => console.error('Service Worker registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+</html>

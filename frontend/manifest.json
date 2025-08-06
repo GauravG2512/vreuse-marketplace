@@ -1,0 +1,15 @@
+{
+  "name": "V-Reuse Marketplace",
+  "short_name": "V-Reuse",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4CAF50",
+  "icons": [
+    {
+      "src": "/path-to-your-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
