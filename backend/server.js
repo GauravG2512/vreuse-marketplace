@@ -26,14 +26,18 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: `http://localhost:${process.env.PORT}`, // Ensure this matches your frontend URL
+        // FIX: Updated CORS origin to your Netlify frontend URL
+        origin: "https://vreuse.netlify.app",
         methods: ["GET", "POST"]
     }
 });
 
 // 4. Middleware
 app.use(express.json()); // For parsing application/json
-app.use(cors()); // Enable CORS for all routes
+// FIX: Updated CORS origin for Express routes as well
+app.use(cors({
+    origin: "https://vreuse.netlify.app"
+}));
 
 // 5. Database Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -140,4 +144,3 @@ app.use(express.static(path.join(__dirname, '..', 'frontend')));
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
-
