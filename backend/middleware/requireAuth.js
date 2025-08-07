@@ -16,9 +16,14 @@ const requireAuth = async (req, res, next) => {
     try {
         const { _id } = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Find the user by ID and attach the full user object to the request
-        // This is the most robust way to ensure the ID is available for controllers
-        req.user = await User.findOne({ _id }).select('_id');
+        // Find the user by ID and attach the full user object to the request.
+        // We now explicitly select the _id to ensure it's available.
+        req.user = await User.findOne({ _id }).select('+_id');
+        
+        if (!req.user) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+        
         next();
 
     } catch (error) {
