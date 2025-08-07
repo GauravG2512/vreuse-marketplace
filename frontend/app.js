@@ -1,6 +1,5 @@
 // D:\\Vreuse\\frontend\\app.js
 // API Base URL
-// FIX: Change this to your live Render backend URL
 const API_URL = 'https://vreuse-marketplace-gg.onrender.com/api'; 
 
 // === DOM Element Selectors ===
@@ -33,7 +32,7 @@ let currentChatId = null;
 let currentChatPartnerId = null;
 let myUserId = null;
 
-// === HTML Templates (no changes) ===
+// === HTML Templates ===
 const loginFormTemplate = `
     <form id="login-form" class="auth-form">
         <h2>Login</h2>
@@ -75,6 +74,7 @@ const addItemFormTemplate = `
             <option value="Lab Kits">Lab Kits</option>
             <option value="Electronics">Electronics</option>
             <option value="Free Stuff">Free Stuff</option>
+            <option value="Other">Other</option>
         </select>
 
         <label for="item-price">Price (₹):</label>
@@ -109,8 +109,9 @@ const initializeSocket = (userId) => {
         return;
     }
 
-    // FIX: Change the Socket.io URL to your live Render backend URL
-    socket = io('https://vreuse-marketplace-gg.onrender.com');
+    // Use the same base URL as the API for the socket connection
+    const socketUrl = API_URL.replace('/api', '');
+    socket = io(socketUrl);
 
     socket.on('connect', () => {
         console.log('Socket connected:', socket.id);
@@ -118,8 +119,6 @@ const initializeSocket = (userId) => {
     });
 
     socket.on('receiveMessage', (message) => {
-        // If the message is from the current chat partner, append it.
-        // If not, and the user is on the inbox page, refresh the conversations.
         if (currentChatId && message.chat === currentChatId) {
             appendMessageToChat(message);
         } else {
@@ -192,13 +191,11 @@ const handleAuthenticatedState = async () => {
     vreuseLogo.style.display = 'none';
     vitLogo.style.display = 'block';
 
-    // FIX: Await the user data fetch to prevent a race condition
     const user = await fetchUserProfileData();
     if (user) {
         myUserId = user._id;
         initializeSocket(myUserId);
     } else {
-        // FIX: If user data can't be fetched, log out
         handleUnauthenticatedState();
     }
 
@@ -410,7 +407,6 @@ const displayItems = (items) => {
                             </button>`;
         }
         
-        // FIX: The image source is now the Cloudinary URL stored in the database
         itemElement.innerHTML = `
             <h3>${item.title}</h3>
             <p>${item.description}</p>
@@ -443,10 +439,10 @@ const displayItems = (items) => {
                         itemElementToRemove.remove();
                     } else {
                         const data = await response.json();
-                        displayErrorMessage(`Error: ${data.error}`); // FIX: Updated error handling
+                        displayErrorMessage(`Error: ${data.error}`);
                     }
                 } catch (error) {
-                    displayErrorMessage('Could not delete the item. Please try again.'); // FIX: Updated error handling
+                    displayErrorMessage('Could not delete the item. Please try again.');
                     console.error('Error deleting item:', error);
                 }
             }
@@ -460,7 +456,7 @@ const displayItems = (items) => {
             if (myUserId && posterId !== myUserId) {
                 startChat(posterId, posterEmail);
             } else {
-                displayErrorMessage("You cannot chat with yourself."); // FIX: Updated error handling
+                displayErrorMessage("You cannot chat with yourself.");
                 console.error("You cannot chat with yourself.");
             }
         });
@@ -511,17 +507,17 @@ const setupAddItemFormListener = () => {
 const startChat = async (partnerId, partnerEmail) => {
     const token = localStorage.getItem('token');
     if (!token) {
-        displayErrorMessage("Please log in to start a chat."); // FIX: Updated error handling
+        displayErrorMessage("Please log in to start a chat.");
         return;
     }
 
     if (!myUserId) {
-        displayErrorMessage("User ID not loaded yet. Please try again in a moment."); // FIX: Updated error handling
+        displayErrorMessage("User ID not loaded yet. Please try again in a moment.");
         return;
     }
 
     if (myUserId === partnerId) {
-        displayErrorMessage("You cannot chat with yourself."); // FIX: Updated error handling
+        displayErrorMessage("You cannot chat with yourself.");
         return;
     }
 
@@ -553,11 +549,11 @@ const startChat = async (partnerId, partnerEmail) => {
             renderPage('chat');
         } else {
             const errorData = await response.json();
-            displayErrorMessage(`Failed to start chat: ${errorData.error}`); // FIX: Updated error handling
+            displayErrorMessage(`Failed to start chat: ${errorData.error}`);
         }
     } catch (error) {
         console.error('Error starting chat:', error);
-        displayErrorMessage('Error starting chat. Please try again.'); // FIX: Updated error handling
+        displayErrorMessage('Error starting chat. Please try again.');
     }
 };
 
@@ -628,8 +624,13 @@ const setupChatListeners = () => {
 };
 
 const sendMessage = (messageText) => {
-    if (!socket || !socket.connected || !currentChatId || !myUserId) {
-        displayErrorMessage('Cannot send message: Socket not connected or chat/user ID missing.'); // FIX: Updated error handling
+    if (!socket || !socket.connected) {
+        displayErrorMessage('Cannot send message: Socket not connected.');
+        return;
+    }
+    
+    if (!currentChatId || !myUserId) {
+        displayErrorMessage('Cannot send message: Chat or user ID missing.');
         return;
     }
 
@@ -640,7 +641,6 @@ const sendMessage = (messageText) => {
             text: messageText
         });
 
-        // Optimistically add the message to the UI
         appendMessageToChat({
             chat: currentChatId,
             sender: { _id: myUserId, email: localStorage.getItem('userEmail') },
@@ -650,7 +650,7 @@ const sendMessage = (messageText) => {
 
     } catch (error) {
         console.error('Error emitting message via socket:', error);
-        displayErrorMessage('Error sending message. Please try again.'); // FIX: Updated error handling
+        displayErrorMessage('Error sending message. Please try again.');
     }
 };
 
@@ -708,7 +708,7 @@ const displayConversations = (conversations) => {
             if (conversation.chatPartner) {
                 startChat(conversation.chatPartner._id, conversation.chatPartner.email);
             } else {
-                displayErrorMessage("Cannot start chat with an unknown user."); // FIX: Updated error handling
+                displayErrorMessage("Cannot start chat with an unknown user.");
             }
         });
         conversationsList.appendChild(conversationElement);
