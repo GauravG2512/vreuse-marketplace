@@ -1,4 +1,4 @@
-// D:\\Vreuse\\backend\\server.js
+// D:\Vreuse\backend\server.js
 
 // 1. Load environment variables
 require('dotenv').config();
@@ -129,7 +129,7 @@ io.on('connection', (socket) => {
 
 // === Serve the uploaded images ===
 // This makes the 'uploads' directory accessible publicly via /uploads URL
-// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 6. Use the API routes
 app.use('/api/user', userRoutes);
