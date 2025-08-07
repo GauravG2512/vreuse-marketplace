@@ -91,16 +91,9 @@
         <p>&copy; 2025 V-Reuse. All rights reserved.</p>
     </footer>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mQZ6+n/v/w/R3L3X5p3t0J4Xg+QW140T90aL6sFzE1J+4e3wA7L+w==" crossorigin="anonymous"></script>
+    <!-- FIX: Placed before app.js and removed integrity attribute -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(reg => console.log('Service Worker registered!', reg))
-                    .catch(err => console.error('Service Worker registration failed: ', err));
-            });
-        }
-    </script>
+    <!-- FIX: Removed the service worker registration code as it was causing an error -->
 </body>
 </html>
