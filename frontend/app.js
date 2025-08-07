@@ -247,6 +247,10 @@ const checkAuth = async () => {
         } catch (error) {
             console.error("Failed to verify token or fetch user profile:", error);
         }
+        // If we reach this point, the token was invalid or expired.
+        // We must clear the auth data to ensure a consistent UI state.
+        localStorage.removeItem('token');
+        localStorage.removeItem('userEmail');
     }
     handleUnauthenticatedState();
 };
