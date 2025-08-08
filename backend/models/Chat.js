@@ -1,5 +1,3 @@
-// D:\Vreuse\backend\models\Chat.js
-
 const mongoose = require('mongoose');
 
 const chatSchema = new mongoose.Schema({
@@ -30,8 +28,19 @@ const chatSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
-// Ensure unique pair of users (order-insensitive)
-chatSchema.index({ users: 1 }, { unique: true });
+// Ensure unique combination of users (order-insensitive)
+chatSchema.index(
+    { 'users.0': 1, 'users.1': 1 },
+    { unique: true }
+);
+
+// Pre-save hook to always sort user IDs for consistent indexing
+chatSchema.pre('save', function (next) {
+    if (this.users && this.users.length === 2) {
+        this.users = this.users.map(u => u.toString()).sort();
+    }
+    next();
+});
 
 // Virtual for messages (not stored in DB)
 chatSchema.virtual('messages', {
