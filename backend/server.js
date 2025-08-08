@@ -91,12 +91,18 @@ io.on('connection', (socket) => {
                 console.error(`Chat with ID ${chatId} not found.`);
                 return;
             }
+
+            // Add chatId into emitted payload so frontend's message.chat check works
+            const msgToSend = {
+                ...populatedMsg.toObject(),
+                chat: chatId
+            };
             
-            // Get all participants and emit the message to each one that is currently connected
+            // Emit the message to all participants currently connected
             chat.users.forEach(userId => {
                 const receiverSocketId = userSocketMap.get(userId.toString());
                 if (receiverSocketId) {
-                    io.to(receiverSocketId).emit('receiveMessage', populatedMsg);
+                    io.to(receiverSocketId).emit('receiveMessage', msgToSend);
                 }
             });
         } catch (error) {
