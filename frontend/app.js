@@ -118,14 +118,17 @@ const initializeSocket = (userId) => {
         socket.emit('joinRoom', userId);
     });
 
+socket.off('receiveMessage');
 socket.on('receiveMessage', (message) => {
-    if (currentChatId && message.chat === currentChatId) {
-        appendMessageToChat(message);
-    } else {
-        if (messagesInboxContainer.style.display === 'block') {
-            fetchConversations();
+    if (message.sender._id !== myUserId) {
+        if (currentChatId && message.chat === currentChatId) {
+            appendMessageToChat(message);
+        } else {
+            if (messagesInboxContainer.style.display === 'block') {
+                fetchConversations();
+            }
+            console.log("New message received for another chat:", message);
         }
-        console.log("New message received for another chat:", message);
     }
 });
 
