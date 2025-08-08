@@ -14,8 +14,12 @@ const startChat = async (req, res) => {
         const userId = new mongoose.Types.ObjectId(req.user._id);
 
         // Validate partnerId
-        if (!mongoose.Types.ObjectId.isValid(partnerId)) {
+        if (!partnerId || !mongoose.Types.ObjectId.isValid(partnerId)) {
             return res.status(400).json({ error: 'Invalid partner ID' });
+        }
+
+        if (userId.toString() === partnerId.toString()) {
+            return res.status(400).json({ error: 'Cannot chat with yourself' });
         }
 
         // Check if partner exists
@@ -58,7 +62,6 @@ const getMessages = async (req, res) => {
         const { chatId } = req.params;
         const userId = req.user._id;
 
-        // Find the chat and check if the user is a participant
         const chat = await Chat.findById(chatId);
         if (!chat || !chat.users.includes(userId)) {
             return res.status(403).json({ error: 'Not authorized to view this chat' });

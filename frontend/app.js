@@ -118,16 +118,16 @@ const initializeSocket = (userId) => {
         socket.emit('joinRoom', userId);
     });
 
-    socket.on('receiveMessage', (message) => {
-        if (currentChatId && message.chat === currentChatId) {
-            appendMessageToChat(message);
-        } else {
-            if (messagesInboxContainer.style.display === 'block') {
-                fetchConversations();
-            }
-            console.log("New message received for another chat:", message);
+socket.on('receiveMessage', (message) => {
+    if (currentChatId && message.chat === currentChatId) {
+        appendMessageToChat(message);
+    } else {
+        if (messagesInboxContainer.style.display === 'block') {
+            fetchConversations();
         }
-    });
+        console.log("New message received for another chat:", message);
+    }
+});
 
     socket.on('disconnect', () => {
         console.log('Socket disconnected.');
@@ -453,18 +453,23 @@ const displayItems = (items) => {
         });
     });
 
-    document.querySelectorAll('.contact-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const posterId = e.target.getAttribute('data-poster-id');
-            const posterEmail = e.target.getAttribute('data-poster-email');
-            if (myUserId && posterId !== myUserId) {
-                startChat(posterId, posterEmail);
-            } else {
-                displayErrorMessage("You cannot chat with yourself.");
-                console.error("You cannot chat with yourself.");
-            }
-        });
+   document.querySelectorAll('.contact-button').forEach(button => {
+    button.addEventListener('click', (e) => {
+        const posterId = e.target.getAttribute('data-poster-id');
+        const posterEmail = e.target.getAttribute('data-poster-email');
+
+        if (!myUserId) {
+            displayErrorMessage("User ID not loaded yet. Please wait.");
+            return;
+        }
+        if (posterId === myUserId) {
+            displayErrorMessage("You cannot chat with yourself.");
+            return;
+        }
+        startChat(posterId, posterEmail);
     });
+});
+
 };
 
 // === Add Item Form Logic ===
@@ -632,31 +637,24 @@ const sendMessage = (messageText) => {
         displayErrorMessage('Cannot send message: Socket not connected.');
         return;
     }
-    
     if (!currentChatId || !myUserId) {
         displayErrorMessage('Cannot send message: Chat or user ID missing.');
         return;
     }
 
-    try {
-        socket.emit('sendMessage', {
-            chatId: currentChatId,
-            senderId: myUserId,
-            text: messageText
-        });
+    socket.emit('sendMessage', {
+        chatId: currentChatId,
+        senderId: myUserId,
+        text: messageText
+    });
 
-        appendMessageToChat({
-            chat: currentChatId,
-            sender: { _id: myUserId, email: localStorage.getItem('userEmail') },
-            text: messageText,
-            createdAt: new Date().toISOString()
-        });
-
-    } catch (error) {
-        console.error('Error emitting message via socket:', error);
-        displayErrorMessage('Error sending message. Please try again.');
-    }
-};
+    appendMessageToChat({
+        chat: currentChatId,
+        sender: { _id: myUserId, email: localStorage.getItem('userEmail') },
+        text: messageText,
+        createdAt: new Date().toISOString()
+    });
+}
 
 const fetchConversations = async () => {
     const token = localStorage.getItem('token');
