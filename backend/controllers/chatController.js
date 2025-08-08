@@ -48,7 +48,8 @@ const startChat = async (req, res) => {
             partnerEmail: chat.users.find(u => u._id.toString() !== userObjectId.toString()).email
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('startChat ERROR:', error);
+    res.status(500).json({ error: error.message });
     }
 };
 
@@ -70,7 +71,8 @@ const getMessages = async (req, res) => {
             .populate('sender', 'email');
         res.status(200).json({ messages });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('startChat ERROR:', error);
+    res.status(500).json({ error: error.message });
     }
 };
 
@@ -97,7 +99,8 @@ const sendMessage = async (req, res) => {
 
         res.status(201).json({ message: populatedMsg });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('startChat ERROR:', error);
+    res.status(500).json({ error: error.message });
     }
 };
 
