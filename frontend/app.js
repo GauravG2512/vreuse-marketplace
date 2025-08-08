@@ -654,7 +654,8 @@ const sendMessage = (messageText) => {
         text: messageText,
         createdAt: new Date().toISOString()
     });
-}
+};
+
 
 const fetchConversations = async () => {
     const token = localStorage.getItem('token');

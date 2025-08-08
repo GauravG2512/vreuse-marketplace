@@ -1,9 +1,6 @@
 // D:\Vreuse\backend\server.js
 
-// 1. Load environment variables
 require('dotenv').config();
-
-// 2. Import necessary packages
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -11,17 +8,14 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 
-// Import your routes
 const userRoutes = require('./routes/userRoutes');
 const itemRoutes = require('./routes/itemRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 
-// Import your models for Socket.io use
 const Message = require('./models/Message');
 const Chat = require('./models/Chat');
 const User = require('./models/User'); 
 
-// 3. Initialize Express app
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -31,13 +25,11 @@ const io = new Server(server, {
     }
 });
 
-// 4. Middleware
 app.use(express.json()); 
 app.use(cors({
     origin: "https://vreuse.netlify.app"
 }));
 
-// 5. Database Connection
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
         console.log('MongoDB connected successfully!');
@@ -52,7 +44,6 @@ mongoose.connect(process.env.MONGODB_URI)
         process.exit(1); 
     });
 
-// === Socket.io Logic ===
 const userSocketMap = new Map();
 const socketUserMap = new Map();
 
@@ -74,16 +65,11 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            const newMessage = new Message({
-                chat: chatId,
-                sender: senderId,
-                text
-            });
+            const newMessage = new Message({ chat: chatId, sender: senderId, text });
             await newMessage.save();
 
             await Chat.findByIdAndUpdate(chatId, { lastMessage: newMessage._id, updatedAt: Date.now() });
 
-            // Populate the sender's email for real-time display on frontend
             const populatedMsg = await Message.populate(newMessage, { path: 'sender', select: 'email' });
 
             const chat = await Chat.findById(chatId);
@@ -92,13 +78,12 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Add chatId into emitted payload so frontend's message.chat check works
+            // Include chatId in emitted payload
             const msgToSend = {
                 ...populatedMsg.toObject(),
                 chat: chatId
             };
             
-            // Emit the message to all participants currently connected
             chat.users.forEach(userId => {
                 const receiverSocketId = userSocketMap.get(userId.toString());
                 if (receiverSocketId) {
@@ -122,13 +107,10 @@ io.on('connection', (socket) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 app.use('/api/user', userRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/chat', chatRoutes);
-
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
-
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });

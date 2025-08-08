@@ -1,142 +1,116 @@
-// D:\Vreuse\backend\controllers\chatController.js
+// D:\Vreuse\backend\server.js
 
-const Chat = require('../models/Chat');
-const Message = require('../models/Message');
-const User = require('../models/User');
+require('dotenv').config();
+const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
+const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
 
-// ===================================
-// Start or retrieve a chat
-// ===================================
-const startChat = async (req, res) => {
-    try {
-        const { partnerId } = req.body;
-        const userId = new mongoose.Types.ObjectId(req.user._id);
+const userRoutes = require('./routes/userRoutes');
+const itemRoutes = require('./routes/itemRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
-        // Validate partnerId
-        if (!partnerId || !mongoose.Types.ObjectId.isValid(partnerId)) {
-            return res.status(400).json({ error: 'Invalid partner ID' });
-        }
+const Message = require('./models/Message');
+const Chat = require('./models/Chat');
+const User = require('./models/User'); 
 
-        if (userId.toString() === partnerId.toString()) {
-            return res.status(400).json({ error: 'Cannot chat with yourself' });
-        }
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "https://vreuse.netlify.app",
+        methods: ["GET", "POST"]
+    }
+});
 
-        // Check if partner exists
-        const partner = await User.findById(partnerId);
-        if (!partner) {
-            return res.status(404).json({ error: 'Partner user not found' });
-        }
+app.use(express.json()); 
+app.use(cors({
+    origin: "https://vreuse.netlify.app"
+}));
 
-        // Find or create chat
-        let chat = await Chat.findOne({
-            users: { $all: [userId, partnerId], $size: 2 }
-        }).populate('users', 'email');
-
-        if (!chat) {
-            chat = new Chat({ users: [userId, partnerId] });
-            await chat.save();
-            chat = await Chat.populate(chat, { path: 'users', select: 'email' });
-        }
-
-        // Get messages
-        const messages = await Message.find({ chat: chat._id })
-            .sort({ createdAt: 1 })
-            .populate('sender', 'email');
-
-        res.status(200).json({
-            chatId: chat._id,
-            messages,
-            partnerEmail: chat.users.find(u => u._id.toString() !== userId.toString()).email
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => {
+        console.log('MongoDB connected successfully!');
+        const PORT = process.env.PORT || 3000;
+        server.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+            console.log(`Access it at: http://localhost:${PORT}`);
         });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+    })
+    .catch((err) => {
+        console.error('MongoDB connection error:', err);
+        process.exit(1); 
+    });
 
-// ===================================
-// Get messages for a specific chat
-// ===================================
-const getMessages = async (req, res) => {
-    try {
-        const { chatId } = req.params;
-        const userId = req.user._id;
+const userSocketMap = new Map();
+const socketUserMap = new Map();
 
-        const chat = await Chat.findById(chatId);
-        if (!chat || !chat.users.includes(userId)) {
-            return res.status(403).json({ error: 'Not authorized to view this chat' });
+io.on('connection', (socket) => {
+    console.log('New connection:', socket.id);
+
+    socket.on('joinRoom', (userId) => {
+        userSocketMap.set(userId, socket.id);
+        socketUserMap.set(socket.id, userId);
+        console.log(`User ${userId} connected with socket ${socket.id}`);
+    });
+
+    socket.on('sendMessage', async (data) => {
+        try {
+            const { chatId, senderId, text } = data;
+
+            if (!chatId || !senderId || !text) {
+                console.error('Invalid message data received:', data);
+                return;
+            }
+
+            const newMessage = new Message({ chat: chatId, sender: senderId, text });
+            await newMessage.save();
+
+            await Chat.findByIdAndUpdate(chatId, { lastMessage: newMessage._id, updatedAt: Date.now() });
+
+            const populatedMsg = await Message.populate(newMessage, { path: 'sender', select: 'email' });
+
+            const chat = await Chat.findById(chatId);
+            if (!chat) {
+                console.error(`Chat with ID ${chatId} not found.`);
+                return;
+            }
+
+            // Include chatId in emitted payload
+            const msgToSend = {
+                ...populatedMsg.toObject(),
+                chat: chatId
+            };
+            
+            chat.users.forEach(userId => {
+                const receiverSocketId = userSocketMap.get(userId.toString());
+                if (receiverSocketId) {
+                    io.to(receiverSocketId).emit('receiveMessage', msgToSend);
+                }
+            });
+        } catch (error) {
+            console.error('Error handling message:', error);
         }
+    });
 
-        const messages = await Message.find({ chat: chatId })
-            .sort({ createdAt: 1 })
-            .populate('sender', 'email');
-        res.status(200).json({ messages });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// ===================================
-// Send a message
-// ===================================
-const sendMessage = async (req, res) => {
-    try {
-        const { chatId } = req.params;
-        const { text } = req.body;
-        const senderId = req.user._id;
-
-        const chat = await Chat.findById(chatId);
-        if (!chat || !chat.users.includes(senderId)) {
-            return res.status(403).json({ error: 'Not authorized to send messages to this chat' });
+    socket.on('disconnect', () => {
+        const userId = socketUserMap.get(socket.id);
+        if (userId) {
+            userSocketMap.delete(userId);
+            socketUserMap.delete(socket.id);
+            console.log(`User ${userId} disconnected`);
         }
+        console.log('Client disconnected:', socket.id);
+    });
+});
 
-        const newMessage = new Message({ chat: chatId, sender: senderId, text });
-        await newMessage.save();
-
-        await Chat.findByIdAndUpdate(chatId, { lastMessage: newMessage._id, updatedAt: Date.now() });
-
-        const populatedMsg = await Message.populate(newMessage, { path: 'sender', select: 'email' });
-
-        res.status(201).json({ message: populatedMsg });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// ===================================
-// Get all conversations for a user
-// ===================================
-const getConversations = async (req, res) => {
-    try {
-        const userId = new mongoose.Types.ObjectId(req.user._id);
-
-        const conversations = await Chat.find({ users: userId })
-            .populate({
-                path: 'users',
-                select: 'email',
-                match: { _id: { $ne: userId } }
-            })
-            .populate({
-                path: 'lastMessage',
-                select: 'text createdAt'
-            })
-            .sort({ updatedAt: -1 });
-
-        const filteredConversations = conversations.filter(conv =>
-            conv.users.length > 0 && conv.users[0] !== null
-        );
-
-        res.status(200).json({
-            conversations: filteredConversations.map(conv => ({
-                _id: conv._id,
-                chatPartner: conv.users[0],
-                lastMessage: conv.lastMessage?.text || 'No messages yet',
-                updatedAt: conv.updatedAt
-            }))
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-module.exports = { startChat, getMessages, sendMessage, getConversations };
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/user', userRoutes);
+app.use('/api/items', itemRoutes);
+app.use('/api/chat', chatRoutes);
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
+});
