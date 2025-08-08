@@ -1,5 +1,3 @@
-// D:\Vreuse\backend\controllers\chatController.js
-
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const User = require('../models/User');
@@ -11,41 +9,35 @@ const mongoose = require('mongoose');
 const startChat = async (req, res) => {
     try {
         const { partnerId } = req.body;
-        const userId = new mongoose.Types.ObjectId(req.user._id);
 
-        // Validate partnerId format
         if (!partnerId || !mongoose.Types.ObjectId.isValid(partnerId)) {
             return res.status(400).json({ error: 'Invalid partner ID' });
         }
 
+        const userObjectId = new mongoose.Types.ObjectId(req.user._id);
         const partnerObjectId = new mongoose.Types.ObjectId(partnerId);
 
-        // Prevent chatting with self
-        if (userId.toString() === partnerObjectId.toString()) {
+        if (userObjectId.equals(partnerObjectId)) {
             return res.status(400).json({ error: 'Cannot chat with yourself' });
         }
 
-        // Check if partner exists
         const partner = await User.findById(partnerObjectId);
         if (!partner) {
             return res.status(404).json({ error: 'Partner user not found' });
         }
 
-        // Debug log for troubleshooting
-        console.log('startChat -> userId:', userId.toString(), 'partnerId:', partnerObjectId.toString());
+        console.log('startChat -> userId:', userObjectId.toString(), 'partnerId:', partnerObjectId.toString());
 
-        // Find or create chat
         let chat = await Chat.findOne({
-            users: { $all: [userId, partnerObjectId], $size: 2 }
+            users: { $all: [userObjectId, partnerObjectId], $size: 2 }
         }).populate('users', 'email');
 
         if (!chat) {
-            chat = new Chat({ users: [userId, partnerObjectId] });
+            chat = new Chat({ users: [userObjectId, partnerObjectId] });
             await chat.save();
             chat = await Chat.populate(chat, { path: 'users', select: 'email' });
         }
 
-        // Get messages
         const messages = await Message.find({ chat: chat._id })
             .sort({ createdAt: 1 })
             .populate('sender', 'email');
@@ -53,7 +45,7 @@ const startChat = async (req, res) => {
         res.status(200).json({
             chatId: chat._id,
             messages,
-            partnerEmail: chat.users.find(u => u._id.toString() !== userId.toString()).email
+            partnerEmail: chat.users.find(u => u._id.toString() !== userObjectId.toString()).email
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -114,13 +106,13 @@ const sendMessage = async (req, res) => {
 // ===================================
 const getConversations = async (req, res) => {
     try {
-        const userId = new mongoose.Types.ObjectId(req.user._id);
+        const userObjectId = new mongoose.Types.ObjectId(req.user._id);
 
-        const conversations = await Chat.find({ users: userId })
+        const conversations = await Chat.find({ users: userObjectId })
             .populate({
                 path: 'users',
                 select: 'email',
-                match: { _id: { $ne: userId } }
+                match: { _id: { $ne: userObjectId } }
             })
             .populate({
                 path: 'lastMessage',
