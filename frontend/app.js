@@ -42,6 +42,48 @@ const loginFormTemplate = `
         <label for="login-password">Password:</label>
         <input type="password" id="login-password" required>
         <button type="submit">Login</button>
+        <a href="#" id="show-forgot-password" class="auth-link">Forgot Password?</a>
+    </form>
+`;
+
+const forgotPasswordTemplate = `
+    <form id="forgot-password-form" class="auth-form">
+        <h2>Forgot Password</h2>
+        <div id="forgot-password-message"></div>
+        <label for="forgot-email">VIT Email:</label>
+        <input type="email" id="forgot-email" required>
+        <button type="submit">Send Reset Link</button>
+        <a href="#" id="show-login-from-forgot" class="auth-link">Back to Login</a>
+    </form>
+`;
+
+const resetPasswordTemplate = (token) => `
+    <form id="reset-password-form" class="auth-form">
+        <h2>Reset Password</h2>
+        <div id="reset-password-message"></div>
+        <input type="hidden" id="reset-token" value="${token}">
+        <label for="reset-password">New Password:</label>
+        <input type="password" id="reset-password" required>
+        <label for="confirm-password">Confirm New Password:</label>
+        <input type="password" id="confirm-password" required>
+        <button type="submit">Reset Password</button>
+    </form>
+`;
+
+const changePasswordTemplate = () => `
+    <form id="change-password-form" class="auth-form">
+        <h2>Change Password</h2>
+        <div id="change-password-message"></div>
+        <label for="current-password">Current Password:</label>
+        <input type="password" id="current-password" required>
+        <label for="new-password">New Password:</label>
+        <input type="password" id="new-password" required>
+        <label for="confirm-new-password">Confirm New Password:</label>
+        <input type="password" id="confirm-new-password" required>
+        <div class="profile-form-actions">
+            <button type="submit" class="nav-button">Update Password</button>
+            <button type="button" id="cancel-change-password-button" class="nav-button" style="background-color: #6c757d;">Cancel</button>
+        </div>
     </form>
 `;
 
@@ -182,6 +224,25 @@ const renderPage = (page) => {
     } else if (page === 'chat') {
         chatContainer.style.display = 'flex';
         setupChatListeners();
+    } else if (page === 'forgot-password') {
+        authContainer.style.display = 'flex';
+        authContainer.innerHTML = forgotPasswordTemplate;
+        setupAuthFormListeners();
+    } else if (page === 'reset-password') {
+        authContainer.style.display = 'flex';
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (token) {
+            authContainer.innerHTML = resetPasswordTemplate(token);
+            setupAuthFormListeners();
+        } else {
+            displayErrorMessage('Password reset token is missing from the URL.');
+            renderPage('login');
+        }
+    } else if (page === 'change-password') {
+        profileContainer.style.display = 'block';
+        profileContainer.innerHTML = changePasswordTemplate();
+        setupAuthFormListeners();
     }
 };
 
@@ -227,7 +288,13 @@ const handleUnauthenticatedState = () => {
     vreuseLogo.style.display = 'block';
     vitLogo.style.display = 'none';
 
-    renderPage('login');
+    // Check for a reset token in the URL on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('token')) {
+        renderPage('reset-password');
+    } else {
+        renderPage('login');
+    }
 };
 
 // === Error Handling ===
@@ -259,8 +326,6 @@ const checkAuth = async () => {
         } catch (error) {
             console.error("Failed to verify token or fetch user profile:", error);
         }
-        // If we reach this point, the token was invalid or expired.
-        // We must clear the auth data to ensure a consistent UI state.
         localStorage.removeItem('token');
         localStorage.removeItem('userEmail');
         localStorage.removeItem('userName');
@@ -271,7 +336,13 @@ const checkAuth = async () => {
 const setupAuthFormListeners = () => {
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
-    
+    const forgotPasswordForm = document.getElementById('forgot-password-form');
+    const resetPasswordForm = document.getElementById('reset-password-form');
+    const changePasswordForm = document.getElementById('change-password-form');
+    const cancelChangePasswordButton = document.getElementById('cancel-change-password-button');
+    const showForgotLink = document.getElementById('show-forgot-password');
+    const showLoginFromForgotLink = document.getElementById('show-login-from-forgot');
+
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -280,6 +351,7 @@ const setupAuthFormListeners = () => {
             await handleAuthSubmission('login', { email, password });
         });
     }
+
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -288,6 +360,135 @@ const setupAuthFormListeners = () => {
             const role = document.getElementById('register-role').value;
             const password = document.getElementById('register-password').value;
             await handleAuthSubmission('register', { name, email, role, password });
+        });
+    }
+
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value;
+            const messageElement = document.getElementById('forgot-password-message');
+            messageElement.textContent = '';
+            
+            try {
+                const response = await fetch(`${API_URL}/user/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    messageElement.textContent = data.message;
+                    messageElement.style.color = '#4CAF50';
+                } else {
+                    messageElement.textContent = data.error || 'Failed to send reset link.';
+                    messageElement.style.color = 'red';
+                }
+            } catch (error) {
+                messageElement.textContent = 'Could not connect to the server.';
+                messageElement.style.color = 'red';
+            }
+        });
+    }
+    
+    if (resetPasswordForm) {
+        resetPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = document.getElementById('reset-token').value;
+            const password = document.getElementById('reset-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const messageElement = document.getElementById('reset-password-message');
+            messageElement.textContent = '';
+
+            if (password !== confirmPassword) {
+                messageElement.textContent = 'Passwords do not match.';
+                messageElement.style.color = 'red';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/user/reset-password/${token}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('userEmail', data.email);
+                    localStorage.setItem('userName', data.name);
+                    messageElement.textContent = data.message;
+                    messageElement.style.color = '#4CAF50';
+                    setTimeout(() => handleAuthenticatedState(), 2000);
+                } else {
+                    messageElement.textContent = data.error || 'Failed to reset password.';
+                    messageElement.style.color = 'red';
+                }
+            } catch (error) {
+                messageElement.textContent = 'Could not connect to the server.';
+                messageElement.style.color = 'red';
+            }
+        });
+    }
+
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmNewPassword = document.getElementById('confirm-new-password').value;
+            const messageElement = document.getElementById('change-password-message');
+            const token = localStorage.getItem('token');
+            messageElement.textContent = '';
+
+            if (newPassword !== confirmNewPassword) {
+                messageElement.textContent = 'New passwords do not match.';
+                messageElement.style.color = 'red';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/user/change-password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    messageElement.textContent = data.message;
+                    messageElement.style.color = '#4CAF50';
+                    setTimeout(() => fetchUserProfile(), 2000);
+                } else {
+                    messageElement.textContent = data.error || 'Failed to change password.';
+                    messageElement.style.color = 'red';
+                }
+            } catch (error) {
+                messageElement.textContent = 'Could not connect to the server.';
+                messageElement.style.color = 'red';
+            }
+        });
+    }
+
+    if (showForgotLink) {
+        showForgotLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            renderPage('forgot-password');
+        });
+    }
+    
+    if (showLoginFromForgotLink) {
+        showLoginFromForgotLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            renderPage('login');
+        });
+    }
+
+    if (cancelChangePasswordButton) {
+        cancelChangePasswordButton.addEventListener('click', () => {
+            fetchUserProfile();
         });
     }
 };
@@ -368,12 +569,17 @@ const displayUserProfile = (user) => {
         </div>
         <div class="profile-actions">
             <button id="edit-profile-button" class="nav-button">Edit Profile</button>
+            <button id="change-password-button" class="nav-button">Change Password</button>
             <button id="delete-account-button" class="nav-button" style="background-color: #c0392b;">Delete Account</button>
         </div>
     `;
 
     document.getElementById('edit-profile-button').addEventListener('click', () => {
         showEditProfileForm(user);
+    });
+
+    document.getElementById('change-password-button').addEventListener('click', () => {
+        renderPage('change-password');
     });
 
     document.getElementById('delete-account-button').addEventListener('click', async () => {
@@ -851,6 +1057,17 @@ document.addEventListener('DOMContentLoaded', () => {
         sortBy.addEventListener('change', () => {
             fetchItems();
         });
+    }
+    const path = window.location.pathname;
+    if (path === '/reset-password') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (token) {
+            renderPage('reset-password');
+        } else {
+            // No token, redirect to login
+            window.location.href = '/';
+        }
     }
 });
 
