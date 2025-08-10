@@ -98,6 +98,18 @@ const addItemFormTemplate = `
     </form>
 `;
 
+const chatTemplate = (chatPartnerName) => `
+    <div class="chat-header">
+        <h2 id="chat-with-user">Chat with ${chatPartnerName}</h2>
+        <button id="close-chat" class="nav-button">Close</button>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input">
+        <input type="text" id="chat-input-text" placeholder="Type a message...">
+        <button id="send-message-button" class="nav-button">Send</button>
+    </div>
+`;
+
 // === Socket Initialization ===
 const initializeSocket = (userId) => {
     if (socket && socket.connected) {
