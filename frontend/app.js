@@ -49,8 +49,16 @@ const registerFormTemplate = `
     <form id="register-form" class="auth-form">
         <h2>Register</h2>
         <div id="register-error" class="error-message"></div>
+        <label for="register-name">Name:</label>
+        <input type="text" id="register-name" required>
         <label for="register-email">VIT Email:</label>
         <input type="email" id="register-email" required>
+        <label for="register-role">Role:</label>
+        <select id="register-role" required>
+            <option value="" disabled selected>Select your role</option>
+            <option value="Student">Student</option>
+            <option value="Teacher">Teacher</option>
+        </select>
         <label for="register-password">Password:</label>
         <input type="password" id="register-password" required>
         <button type="submit">Register</button>
@@ -178,8 +186,8 @@ const renderPage = (page) => {
 };
 
 const handleAuthenticatedState = async () => {
-    const userEmail = localStorage.getItem('userEmail');
-    welcomeMessage.textContent = `Welcome, ${userEmail.split('@')[0]}!`;
+    const userName = localStorage.getItem('userName');
+    welcomeMessage.textContent = `Welcome, ${userName}!`;
     welcomeMessage.style.display = 'block';
 
     showAddItemBtn.style.display = 'block';
@@ -244,6 +252,7 @@ const checkAuth = async () => {
             const user = await response.json();
             if (response.ok && user) {
                 localStorage.setItem('userEmail', user.email);
+                localStorage.setItem('userName', user.name);
                 handleAuthenticatedState();
                 return;
             }
@@ -254,6 +263,7 @@ const checkAuth = async () => {
         // We must clear the auth data to ensure a consistent UI state.
         localStorage.removeItem('token');
         localStorage.removeItem('userEmail');
+        localStorage.removeItem('userName');
     }
     handleUnauthenticatedState();
 };
@@ -267,26 +277,28 @@ const setupAuthFormListeners = () => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
-            await handleAuthSubmission('login', email, password);
+            await handleAuthSubmission('login', { email, password });
         });
     }
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const name = document.getElementById('register-name').value;
             const email = document.getElementById('register-email').value;
+            const role = document.getElementById('register-role').value;
             const password = document.getElementById('register-password').value;
-            await handleAuthSubmission('register', email, password);
+            await handleAuthSubmission('register', { name, email, role, password });
         });
     }
 };
 
-const handleAuthSubmission = async (type, email, password) => {
+const handleAuthSubmission = async (type, payload) => {
     const errorElement = document.getElementById(`${type}-error`);
     try {
         const response = await fetch(`${API_URL}/user/${type}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify(payload),
         });
         const data = await response.json();
 
@@ -294,6 +306,7 @@ const handleAuthSubmission = async (type, email, password) => {
             errorElement.textContent = '';
             localStorage.setItem('token', data.token);
             localStorage.setItem('userEmail', data.email);
+            localStorage.setItem('userName', data.name);
             handleAuthenticatedState();
         } else {
             errorElement.textContent = data.error || `Failed to ${type}.`;
@@ -347,6 +360,7 @@ const displayUserProfile = (user) => {
     profileContainer.innerHTML = `
         <h2>User Profile</h2>
         <div class="profile-info">
+            <p><strong>Name:</strong> ${user.name}</p>
             <p><strong>Email:</strong> ${user.email}</p>
             <p><strong>User ID:</strong> ${user._id}</p>
             <p><strong>Role:</strong> ${user.role}</p>
@@ -753,6 +767,7 @@ showMessagesBtn.addEventListener('click', () => renderPage('messages'));
 logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
     if (socket) {
         socket.disconnect();
         socket = null;

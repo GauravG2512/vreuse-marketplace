@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>V-Reuse - Zero-Waste Marketplace</title>
-    <!-- Link to the external stylesheet -->
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -33,22 +32,18 @@
     
     <main>
         <section id="auth-container" class="form-container">
-            <!-- Forms will be loaded here by JavaScript -->
-        </section>
+            </section>
         
         <section id="add-item-container" class="form-container" style="display: none;">
-            <!-- Form will be loaded here by JavaScript -->
-        </section>
+            </section>
 
         <section id="profile-container" style="display: none;">
-            <!-- User profile info will be displayed here by app.js -->
-        </section>
+            </section>
 
         <section id="messages-inbox-container" style="display: none;">
             <h2>Your Conversations</h2>
             <div id="conversations-list">
-                <!-- Conversations will be displayed here -->
-            </div>
+                </div>
         </section>
 
         <section id="marketplace-container" style="display: none;">
@@ -78,8 +73,7 @@
                 <button id="close-chat" class="nav-button">Close</button>
             </div>
             <div class="chat-messages" id="chat-messages">
-                <!-- Messages will be displayed here -->
-            </div>
+                </div>
             <div class="chat-input">
                 <input type="text" id="chat-input-text" placeholder="Type a message...">
                 <button id="send-message-button" class="nav-button">Send</button>
@@ -91,9 +85,7 @@
         <p>&copy; 2025 V-Reuse. All rights reserved.</p>
     </footer>
 
-    <!-- FIX: Placed before app.js and removed integrity attribute -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="app.js"></script>
-    <!-- FIX: Removed the service worker registration code as it was causing an error -->
-</body>
+    </body>
 </html>

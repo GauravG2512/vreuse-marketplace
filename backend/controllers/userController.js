@@ -3,7 +3,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
-// A function to generate a JWT token
+// A function to generate a JWT token for a user
 const createToken = (_id) => {
     return jwt.sign({ _id }, process.env.JWT_SECRET, { expiresIn: '3d' });
 };
@@ -12,29 +12,32 @@ const createToken = (_id) => {
 // User Registration
 // ===================================
 const registerUser = async (req, res) => {
-    const { email, password } = req.body;
+    // Destructure user data from the request body
+    const { email, password, name, role } = req.body;
 
     try {
-        // Basic validation
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
+        // Basic validation: Check if all required fields are provided
+        if (!email || !password || !name || !role) {
+            return res.status(400).json({ error: 'All fields are required' });
         }
 
-        // Check if user already exists
+        // Check if a user with the given email already exists
         const exists = await User.findOne({ email });
         if (exists) {
             return res.status(400).json({ error: 'User with this email already exists' });
         }
 
-        // Create the new user
-        const user = await User.create({ email, password });
+        // Create a new user in the database
+        const user = await User.create({ email, password, name, role });
 
-        // Create a JWT token
+        // Create a new JWT token for the registered user
         const token = createToken(user._id);
 
-        res.status(201).json({ email, token });
+        // Send a success response with the user's email, name, and token
+        res.status(201).json({ email, name, token });
 
     } catch (error) {
+        // Handle server errors
         res.status(500).json({ error: error.message });
     }
 };
@@ -43,21 +46,22 @@ const registerUser = async (req, res) => {
 // User Login
 // ===================================
 const loginUser = async (req, res) => {
+    // Destructure email and password from the request body
     const { email, password } = req.body;
 
     try {
-        // Basic validation
+        // Basic validation: Check if email and password are provided
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        // Find the user by email
+        // Find the user by their email
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ error: 'Incorrect email' });
         }
 
-        // Compare the provided password with the hashed password
+        // Compare the provided password with the stored hashed password
         const match = await user.comparePassword(password);
         if (!match) {
             return res.status(400).json({ error: 'Incorrect password' });
@@ -66,9 +70,11 @@ const loginUser = async (req, res) => {
         // Create a JWT token for the logged-in user
         const token = createToken(user._id);
 
-        res.status(200).json({ email, token });
+        // Send a success response with the user's email, name, and token
+        res.status(200).json({ email, name: user.name, token });
 
     } catch (error) {
+        // Handle server errors
         res.status(500).json({ error: error.message });
     }
 };
@@ -78,12 +84,15 @@ const loginUser = async (req, res) => {
 // ===================================
 const getUserProfile = async (req, res) => {
     try {
+        // Find the user by ID from the authenticated request, and exclude the password field
         const user = await User.findById(req.user._id).select('-password');
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
+        // Send the user's profile data
         res.status(200).json(user);
     } catch (error) {
+        // Handle server errors
         res.status(500).json({ error: error.message });
     }
 };
