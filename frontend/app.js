@@ -328,7 +328,7 @@ const fetchUserProfileData = async () => {
                 return await response.json();
             }
         } catch (error) {
-            console.error("Failed to verify token or fetch user profile:", error);
+            console.error("Failed to fetch user profile data:", error);
         }
     }
     return null;
@@ -658,10 +658,10 @@ const startChat = async (partnerId, partnerEmail) => {
         if (response.ok) {
             const data = await response.json();
             currentChatId = data.chatId;
-            currentChatPartnerId = partnerId;
+            currentChatPartnerId = data.chatPartner._id;
 
-            chatContainer.innerHTML = chatTemplate(data.chatPartner.name || partnerEmail.split('@')[0]);
-            document.getElementById('chat-with-user').textContent = `Chat with ${data.chatPartner.name || partnerEmail.split('@')[0]}`;
+            chatContainer.innerHTML = chatTemplate(data.chatPartner.name || data.chatPartner.email.split('@')[0]);
+            document.getElementById('chat-with-user').textContent = `Chat with ${data.chatPartner.name || data.chatPartner.email.split('@')[0]}`;
             
             if (data.messages && data.messages.length > 0) {
                 populateChatMessages(data.messages);
@@ -689,8 +689,7 @@ const populateChatMessages = (messages) => {
         const isSent = message.sender._id === myUserId;
         const messageElement = document.createElement('div');
         messageElement.classList.add('chat-message', isSent ? 'sent' : 'received');
-        const senderName = isSent ? 'You' : message.sender.name || message.sender.email.split('@')[0];
-        messageElement.innerHTML = `<span class="message-sender">${senderName}</span><br>${message.text}`;
+        messageElement.textContent = message.text;
         chatMessagesContainer.appendChild(messageElement);
     });
     
@@ -709,8 +708,7 @@ const appendMessageToChat = (message) => {
     const isSent = message.sender._id === myUserId;
     const messageElement = document.createElement('div');
     messageElement.classList.add('chat-message', isSent ? 'sent' : 'received');
-    const senderName = isSent ? 'You' : message.sender.name || message.sender.email.split('@')[0];
-    messageElement.innerHTML = `<span class="message-sender">${senderName}</span><br>${message.text}`;
+    messageElement.textContent = message.text;
     chatMessagesContainer.appendChild(messageElement);
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 };
