@@ -30,17 +30,17 @@ const startChat = async (req, res) => {
 
         let chat = await Chat.findOne({
             users: { $all: [userObjectId, partnerObjectId], $size: 2 }
-        }).populate('users', 'email');
+        }).populate('users', 'email name');
 
         if (!chat) {
             chat = new Chat({ users: [userObjectId, partnerObjectId] });
             await chat.save();
-            chat = await Chat.populate(chat, { path: 'users', select: 'email' });
+            chat = await Chat.populate(chat, { path: 'users', select: 'email name' });
         }
 
         const messages = await Message.find({ chat: chat._id })
             .sort({ createdAt: 1 })
-            .populate('sender', 'email');
+            .populate('sender', 'email name');
 
         res.status(200).json({
             chatId: chat._id,
@@ -68,7 +68,7 @@ const getMessages = async (req, res) => {
 
         const messages = await Message.find({ chat: chatId })
             .sort({ createdAt: 1 })
-            .populate('sender', 'email');
+            .populate('sender', 'email name');
         res.status(200).json({ messages });
     } catch (error) {
         console.error('startChat ERROR:', error);
@@ -95,7 +95,7 @@ const sendMessage = async (req, res) => {
 
         await Chat.findByIdAndUpdate(chatId, { lastMessage: newMessage._id, updatedAt: Date.now() });
 
-        const populatedMsg = await Message.populate(newMessage, { path: 'sender', select: 'email' });
+        const populatedMsg = await Message.populate(newMessage, { path: 'sender', select: 'email name' });
 
         res.status(201).json({ message: populatedMsg });
     } catch (error) {
@@ -114,7 +114,7 @@ const getConversations = async (req, res) => {
         const conversations = await Chat.find({ users: userObjectId })
             .populate({
                 path: 'users',
-                select: 'email',
+                select: 'email name',
                 match: { _id: { $ne: userObjectId } }
             })
             .populate({

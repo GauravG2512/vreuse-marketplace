@@ -98,18 +98,6 @@ const addItemFormTemplate = `
     </form>
 `;
 
-const chatTemplate = (chatPartnerEmail) => `
-    <div class="chat-header">
-        <h2 id="chat-with-user">Chat with ${chatPartnerEmail.split('@')[0]}</h2>
-        <button id="close-chat" class="nav-button">Close</button>
-    </div>
-    <div class="chat-messages" id="chat-messages"></div>
-    <div class="chat-input">
-        <input type="text" id="chat-input-text" placeholder="Type a message...">
-        <button id="send-message-button" class="nav-button">Send</button>
-    </div>
-`;
-
 // === Socket Initialization ===
 const initializeSocket = (userId) => {
     if (socket && socket.connected) {
@@ -660,8 +648,8 @@ const startChat = async (partnerId, partnerEmail) => {
             currentChatId = data.chatId;
             currentChatPartnerId = partnerId;
 
-            chatContainer.innerHTML = chatTemplate(partnerEmail);
-            document.getElementById('chat-with-user').textContent = `Chat with ${partnerEmail.split('@')[0]}`;
+            chatContainer.innerHTML = chatTemplate(data.chatPartner.name || partnerEmail.split('@')[0]);
+            document.getElementById('chat-with-user').textContent = `Chat with ${data.chatPartner.name || partnerEmail.split('@')[0]}`;
             
             if (data.messages && data.messages.length > 0) {
                 populateChatMessages(data.messages);
@@ -689,7 +677,8 @@ const populateChatMessages = (messages) => {
         const isSent = message.sender._id === myUserId;
         const messageElement = document.createElement('div');
         messageElement.classList.add('chat-message', isSent ? 'sent' : 'received');
-        messageElement.textContent = message.text;
+        const senderName = isSent ? 'You' : message.sender.name || message.sender.email.split('@')[0];
+        messageElement.innerHTML = `<span class="message-sender">${senderName}</span><br>${message.text}`;
         chatMessagesContainer.appendChild(messageElement);
     });
     
@@ -708,7 +697,8 @@ const appendMessageToChat = (message) => {
     const isSent = message.sender._id === myUserId;
     const messageElement = document.createElement('div');
     messageElement.classList.add('chat-message', isSent ? 'sent' : 'received');
-    messageElement.textContent = message.text;
+    const senderName = isSent ? 'You' : message.sender.name || message.sender.email.split('@')[0];
+    messageElement.innerHTML = `<span class="message-sender">${senderName}</span><br>${message.text}`;
     chatMessagesContainer.appendChild(messageElement);
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 };
@@ -765,7 +755,7 @@ const sendMessage = (messageText) => {
 
     appendMessageToChat({
         chat: currentChatId,
-        sender: { _id: myUserId, email: localStorage.getItem('userEmail') },
+        sender: { _id: myUserId, email: localStorage.getItem('userEmail'), name: localStorage.getItem('userName') },
         text: messageText,
         createdAt: new Date().toISOString()
     });
@@ -816,15 +806,15 @@ const displayConversations = (conversations) => {
     conversations.forEach(conversation => {
         const conversationElement = document.createElement('div');
         conversationElement.classList.add('conversation-item');
-        const chatPartnerEmail = conversation.chatPartner ? conversation.chatPartner.email.split('@')[0] : 'Unknown User';
+        const chatPartnerName = conversation.chatPartner ? conversation.chatPartner.name || conversation.chatPartner.email.split('@')[0] : 'Unknown User';
         conversationElement.innerHTML = `
-            <h3>${chatPartnerEmail}</h3>
+            <h3>${chatPartnerName}</h3>
             <p>${conversation.lastMessage || 'No messages yet'}</p>
             <p style="font-size: 0.8em; color: #999;">${new Date(conversation.updatedAt).toLocaleString()}</p>
         `;
         conversationElement.addEventListener('click', () => {
             if (conversation.chatPartner) {
-                startChat(conversation.chatPartner._id, conversation.chatPartner.email);
+                startChat(conversation.chatPartner._id, conversation.chatPartner.name || conversation.chatPartner.email.split('@')[0]);
             } else {
                 displayErrorMessage("Cannot start chat with an unknown user.");
             }
