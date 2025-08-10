@@ -1,7 +1,7 @@
 // D:\Vreuse\backend\routes\userRoutes.js
 
 const express = require('express');
-const { registerUser, loginUser, getUserProfile } = require('../controllers/userController');
+const { registerUser, loginUser, getUserProfile, updateUserProfile, deleteUserProfile } = require('../controllers/userController');
 const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
@@ -17,5 +17,11 @@ router.use(requireAuth);
 
 // Get user profile (Protected)
 router.get('/profile', getUserProfile);
+
+// Update user profile (Protected)
+router.put('/profile', updateUserProfile);
+
+// Delete user profile (Protected)
+router.delete('/profile', deleteUserProfile);
 
 module.exports = router;

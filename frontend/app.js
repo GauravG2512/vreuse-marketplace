@@ -363,10 +363,76 @@ const displayUserProfile = (user) => {
             <p><strong>Name:</strong> ${user.name}</p>
             <p><strong>Email:</strong> ${user.email}</p>
             <p><strong>User ID:</strong> ${user._id}</p>
-            <p><strong>Role:</strong> ${user.role}</p>
+            <form id="update-role-form" class="profile-form">
+                <label for="profile-role"><strong>Role:</strong></label>
+                <select id="profile-role" name="role" required>
+                    <option value="Student" ${user.role === 'Student' ? 'selected' : ''}>Student</option>
+                    <option value="Teacher" ${user.role === 'Teacher' ? 'selected' : ''}>Teacher</option>
+                </select>
+                <button type="submit" class="nav-button">Update Role</button>
+                <div id="role-update-message"></div>
+            </form>
             <p><strong>Joined:</strong> ${new Date(user.createdAt).toLocaleDateString()}</p>
         </div>
+        <div class="profile-actions">
+            <button id="delete-account-button" class="nav-button" style="background-color: #c0392b;">Delete Account</button>
+        </div>
     `;
+
+    document.getElementById('update-role-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newRole = document.getElementById('profile-role').value;
+        const token = localStorage.getItem('token');
+        const messageElement = document.getElementById('role-update-message');
+
+        try {
+            const response = await fetch(`${API_URL}/user/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ role: newRole })
+            });
+
+            if (response.ok) {
+                messageElement.textContent = 'Role updated successfully!';
+                messageElement.style.color = '#4CAF50';
+                setTimeout(() => messageElement.textContent = '', 3000);
+            } else {
+                const data = await response.json();
+                messageElement.textContent = data.error || 'Failed to update role.';
+                messageElement.style.color = 'red';
+            }
+        } catch (error) {
+            messageElement.textContent = 'Could not connect to the server.';
+            messageElement.style.color = 'red';
+        }
+    });
+
+    document.getElementById('delete-account-button').addEventListener('click', async () => {
+        if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`${API_URL}/user/profile`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Account deleted successfully.');
+                    logout();
+                } else {
+                    const data = await response.json();
+                    displayErrorMessage(data.error || 'Failed to delete account.');
+                }
+            } catch (error) {
+                displayErrorMessage('Could not connect to the server.');
+            }
+        }
+    });
 };
 
 // === Item Fetching & Display ===
@@ -775,3 +841,15 @@ logoutBtn.addEventListener('click', () => {
     myUserId = null;
     handleUnauthenticatedState();
 });
+
+const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    if (socket) {
+        socket.disconnect();
+        socket = null;
+    }
+    myUserId = null;
+    handleUnauthenticatedState();
+};
