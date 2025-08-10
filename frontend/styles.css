@@ -323,15 +323,33 @@ nav .nav-button:hover {
     margin-top: 1rem;
 }
 
-.profile-form .nav-button {
-    width: auto;
-    margin: 0;
-    align-self: flex-start;
+.profile-form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 1rem;
 }
 
 .profile-actions {
     margin-top: 2rem;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* Added styles for profile buttons */
+#edit-profile-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+}
+
+#edit-profile-button:hover {
+    background-color: #45a049;
 }
 
 #delete-account-button {
@@ -348,6 +366,39 @@ nav .nav-button:hover {
 #delete-account-button:hover {
     background-color: #a53125;
 }
+
+.profile-form .nav-button {
+    width: auto;
+    padding: 12px 20px;
+    margin: 0;
+    font-size: 1rem;
+    border-radius: 4px;
+}
+
+#cancel-edit-button {
+    background-color: #6c757d;
+}
+
+#cancel-edit-button:hover {
+    background-color: #5a6268;
+}
+
+/* General form element styling for profile edit form */
+.profile-form input,
+.profile-form select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+#profile-update-message {
+    text-align: center;
+    font-weight: bold;
+}
+
 
 /* === Search and Filters === */
 .search-and-filters-container {
