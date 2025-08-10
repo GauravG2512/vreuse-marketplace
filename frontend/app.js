@@ -359,55 +359,21 @@ const fetchUserProfile = async () => {
 const displayUserProfile = (user) => {
     profileContainer.innerHTML = `
         <h2>User Profile</h2>
-        <div class="profile-info">
-            <p><strong>Name:</strong> ${user.name}</p>
+        <div id="profile-display" class="profile-info">
+            <p><strong>Name:</strong> <span id="profile-name-display">${user.name}</span></p>
             <p><strong>Email:</strong> ${user.email}</p>
             <p><strong>User ID:</strong> ${user._id}</p>
-            <form id="update-role-form" class="profile-form">
-                <label for="profile-role"><strong>Role:</strong></label>
-                <select id="profile-role" name="role" required>
-                    <option value="Student" ${user.role === 'Student' ? 'selected' : ''}>Student</option>
-                    <option value="Teacher" ${user.role === 'Teacher' ? 'selected' : ''}>Teacher</option>
-                </select>
-                <button type="submit" class="nav-button">Update Role</button>
-                <div id="role-update-message"></div>
-            </form>
+            <p><strong>Role:</strong> <span id="profile-role-display">${user.role}</span></p>
             <p><strong>Joined:</strong> ${new Date(user.createdAt).toLocaleDateString()}</p>
         </div>
         <div class="profile-actions">
+            <button id="edit-profile-button" class="nav-button">Edit Profile</button>
             <button id="delete-account-button" class="nav-button" style="background-color: #c0392b;">Delete Account</button>
         </div>
     `;
 
-    document.getElementById('update-role-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newRole = document.getElementById('profile-role').value;
-        const token = localStorage.getItem('token');
-        const messageElement = document.getElementById('role-update-message');
-
-        try {
-            const response = await fetch(`${API_URL}/user/profile`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ role: newRole })
-            });
-
-            if (response.ok) {
-                messageElement.textContent = 'Role updated successfully!';
-                messageElement.style.color = '#4CAF50';
-                setTimeout(() => messageElement.textContent = '', 3000);
-            } else {
-                const data = await response.json();
-                messageElement.textContent = data.error || 'Failed to update role.';
-                messageElement.style.color = 'red';
-            }
-        } catch (error) {
-            messageElement.textContent = 'Could not connect to the server.';
-            messageElement.style.color = 'red';
-        }
+    document.getElementById('edit-profile-button').addEventListener('click', () => {
+        showEditProfileForm(user);
     });
 
     document.getElementById('delete-account-button').addEventListener('click', async () => {
@@ -432,6 +398,72 @@ const displayUserProfile = (user) => {
                 displayErrorMessage('Could not connect to the server.');
             }
         }
+    });
+};
+
+const showEditProfileForm = (user) => {
+    const profileContainer = document.getElementById('profile-container');
+    profileContainer.innerHTML = `
+        <h2>Edit Profile</h2>
+        <div class="profile-info">
+            <form id="update-profile-form" class="profile-form">
+                <div id="profile-update-message"></div>
+                <label for="profile-name"><strong>Name:</strong></label>
+                <input type="text" id="profile-name" name="name" value="${user.name}" required>
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>User ID:</strong> ${user._id}</p>
+                <label for="profile-role"><strong>Role:</strong></label>
+                <select id="profile-role" name="role" required>
+                    <option value="Student" ${user.role === 'Student' ? 'selected' : ''}>Student</option>
+                    <option value="Teacher" ${user.role === 'Teacher' ? 'selected' : ''}>Teacher</option>
+                </select>
+                <p><strong>Joined:</strong> ${new Date(user.createdAt).toLocaleDateString()}</p>
+                <div class="profile-form-actions">
+                    <button type="submit" class="nav-button">Update Profile</button>
+                    <button type="button" id="cancel-edit-button" class="nav-button" style="background-color: #6c757d;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.getElementById('update-profile-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newName = document.getElementById('profile-name').value;
+        const newRole = document.getElementById('profile-role').value;
+        const token = localStorage.getItem('token');
+        const messageElement = document.getElementById('profile-update-message');
+
+        try {
+            const response = await fetch(`${API_URL}/user/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: newName, role: newRole })
+            });
+
+            if (response.ok) {
+                const updatedUser = await response.json();
+                localStorage.setItem('userName', updatedUser.user.name);
+                messageElement.textContent = 'Profile updated successfully!';
+                messageElement.style.color = '#4CAF50';
+                setTimeout(() => {
+                    fetchUserProfile();
+                }, 1000);
+            } else {
+                const data = await response.json();
+                messageElement.textContent = data.error || 'Failed to update profile.';
+                messageElement.style.color = 'red';
+            }
+        } catch (error) {
+            messageElement.textContent = 'Could not connect to the server.';
+            messageElement.style.color = 'red';
+        }
+    });
+
+    document.getElementById('cancel-edit-button').addEventListener('click', () => {
+        fetchUserProfile();
     });
 };
 
