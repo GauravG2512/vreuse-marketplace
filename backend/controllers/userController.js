@@ -102,11 +102,12 @@ const getUserProfile = async (req, res) => {
 // ===================================
 const updateUserProfile = async (req, res) => {
     try {
-        const { role } = req.body;
+        const { name, role } = req.body;
         const userId = req.user._id;
 
-        if (!role) {
-            return res.status(400).json({ error: 'Role is required' });
+        // Added validation check for name and role
+        if (!name || name.trim() === '' || !role || role.trim() === '') {
+            return res.status(400).json({ error: 'Name and role are required' });
         }
 
         const user = await User.findById(userId);
@@ -115,7 +116,7 @@ const updateUserProfile = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Only allow updating the role
+        user.name = name;
         user.role = role;
         await user.save();
 
