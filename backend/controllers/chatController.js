@@ -42,10 +42,12 @@ const startChat = async (req, res) => {
             .sort({ createdAt: 1 })
             .populate('sender', 'email name');
 
+        const chatPartner = chat.users.find(u => u._id.toString() !== userObjectId.toString());
+
         res.status(200).json({
             chatId: chat._id,
             messages,
-            partnerEmail: chat.users.find(u => u._id.toString() !== userObjectId.toString()).email
+            chatPartner
         });
     } catch (error) {
         console.error('startChat ERROR:', error);

@@ -328,7 +328,7 @@ const fetchUserProfileData = async () => {
                 return await response.json();
             }
         } catch (error) {
-            console.error("Failed to fetch user profile data:", error);
+            console.error("Failed to verify token or fetch user profile:", error);
         }
     }
     return null;
